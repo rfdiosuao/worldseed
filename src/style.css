@@ -101,7 +101,7 @@ body {
 }
 .hero-bg.loaded .hero-bg-img {
   opacity: 1;
-  filter: blur(0);
+  filter: blur(0) saturate(1.15) contrast(1.06);
   transform: scale(1);
 }
 @media (hover: none), (pointer: coarse) {
