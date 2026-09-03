@@ -1,0 +1,11 @@
+// Cloudflare Worker 配置 —— Worldseed Marble 代理
+// 部署：npx wrangler deploy
+// 密钥：npx wrangler secret put WLT_API_KEY （存 World Labs API key，前端永不接触）
+{
+  "name": "worldseed-marble-proxy",
+  "main": "proxy/marble-proxy.js",
+  "compatibility_date": "2025-01-01",
+  "observability": {
+    "enabled": true
+  }
+}

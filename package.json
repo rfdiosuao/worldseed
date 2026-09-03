@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:proxy": "wrangler deploy",
+    "dev:proxy": "wrangler dev"
   },
   "dependencies": {
     "gaussian-splats-3d": "0.0.5",
@@ -15,6 +17,7 @@
     "three": "0.155.0"
   },
   "devDependencies": {
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "wrangler": "^4.128.0"
   }
 }

@@ -2,3 +2,7 @@ node_modules/
 dist/
 *.local
 .DS_Store
+
+# Cloudflare wrangler 本地密钥
+.dev.vars
+.wrangler/
