@@ -1,6 +1,6 @@
 // splat.js —— 真 3D 高斯溅射渲染（gaussian-splats-3d）
 // P1：支持 .ksplat/.splat/.ply/.spz（库支持范围），失败自动降级 2.5D。
-import { Viewer } from 'gaussian-splats-3d'
+// gaussian-splats-3d 改为动态 import：不进主包，仅实际需要时才拉取（保主路径秒开）。
 
 // 尝试加载 splat 场景；成功返回 { viewer, container }，失败返回 null（调用方降级 2.5D）
 export async function tryLoadSplat(recipe, container) {
@@ -8,6 +8,7 @@ export async function tryLoadSplat(recipe, container) {
   if (!url) return null
 
   try {
+    const { Viewer } = await import('gaussian-splats-3d') // 动态 import：分包加载
     const viewer = new Viewer({
       selfDrivenMode: true,          // 库自己驱动 rAF 渲染循环
       useBuiltInControls: true,      // 自带 OrbitControls（拖拽/缩放）
