@@ -82,7 +82,7 @@ body {
 .hero-bg {
   position: absolute;
   inset: -40px;
-  background: radial-gradient(ellipse at 50% 42%, rgba(10,10,18,0) 30%, rgba(10,10,18,0.72) 82%);
+  background: radial-gradient(ellipse at 50% 42%, rgba(10,10,18,0) 48%, rgba(10,10,18,0.55) 90%);
   transform: translate3d(var(--px, 0px), var(--py, 0px), 0);
   will-change: transform;
   z-index: 0;
@@ -107,7 +107,7 @@ body {
 @media (hover: none), (pointer: coarse) {
   .hero-bg { inset: 0; transform: none; }
 }
-.stage#stage-input { position: relative; overflow: hidden; }
+.stage#stage-input { overflow: hidden; }
 .stage#stage-input .hero-inner { position: relative; z-index: 1; }
 .hero-inner {
   max-width: 640px;
