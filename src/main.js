@@ -1,6 +1,7 @@
 // main.js —— 一念成界 · Worldseed 状态机
 // INPUT → GROWING → WORLD → SEAL；hash 分享直达；缓存命中秒开；?fast=1 调试加速
 import './style.css'
+import heroBgUrl from './assets/hero-bg.jpg'
 import { buildRecipe, recipeFromHash } from './core/recipe.js'
 import { getCached, setCached, prefillLibrary } from './state/cache.js'
 import { WorldScene } from './render/scene.js'
@@ -19,7 +20,18 @@ let genId = 0
 // ---------- 启动 ----------
 prefillLibrary()
 setupGlowOrbs()
+preloadHeroBg()
 boot()
+
+// 预加载 hero 高清背景：就绪后触发「模糊→清晰」动画，后续返回输入页直接清晰
+function preloadHeroBg() {
+  const img = new Image()
+  img.onload = () => {
+    window.__heroLoaded = true
+    document.querySelectorAll('.hero-bg').forEach(el => el.classList.add('loaded'))
+  }
+  img.src = heroBgUrl // Vite 处理过的 hashed URL，build 后仍正确
+}
 
 function boot() {
   if (location.hash.startsWith('#w=')) {
@@ -79,7 +91,9 @@ function goInput() {
   showWorldCanvas(false)
   const ov = mountOverlay(`
     <div class="stage" id="stage-input">
-      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-bg${window.__heroLoaded ? ' loaded' : ''}" aria-hidden="true">
+        <div class="hero-bg-img"></div>
+      </div>
       <div class="hero-inner">
         <span class="badge">Eazo 数字艺术黑客松 · WORLDSEED</span>
         <h1 class="slogan">说一句话，30 秒<br/>长出<em>一个能走进去的世界</em></h1>

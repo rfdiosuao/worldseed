@@ -78,19 +78,31 @@ body {
 .stage.hidden { display: none; }
 
 /* ---------- ① 输入页（Hero） ---------- */
-/* 深邃太空星云背景（桌面视差；移动端禁用） */
+/* 深邃太空星云背景：外层做视差 + vignette，内层做「模糊→清晰」加载动画 */
 .hero-bg {
   position: absolute;
   inset: -40px;
-  background-image:
-    radial-gradient(ellipse at 50% 42%, rgba(10,10,18,0) 30%, rgba(10,10,18,0.72) 82%),
-    url('./assets/hero-bg.jpg');
-  background-size: cover;
-  background-position: center;
+  background: radial-gradient(ellipse at 50% 42%, rgba(10,10,18,0) 30%, rgba(10,10,18,0.72) 82%);
   transform: translate3d(var(--px, 0px), var(--py, 0px), 0);
   will-change: transform;
   z-index: 0;
   pointer-events: none;
+}
+.hero-bg-img {
+  position: absolute;
+  inset: 0;
+  background-image: url('./assets/hero-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  filter: blur(22px);
+  transform: scale(1.06);
+  transition: opacity 1.5s var(--ease-hero), filter 1.5s var(--ease-hero), transform 1.5s var(--ease-hero);
+}
+.hero-bg.loaded .hero-bg-img {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
 }
 @media (hover: none), (pointer: coarse) {
   .hero-bg { inset: 0; transform: none; }
