@@ -5,6 +5,7 @@ import heroBgUrl from './assets/hero-bg.jpg'
 import { buildRecipe, recipeFromHash } from './core/recipe.js'
 import { getCached, setCached, prefillLibrary } from './state/cache.js'
 import { WorldScene } from './render/scene.js'
+import { tryLoadSplat, disposeSplat } from './render/splat.js'
 import { mountCard, buildShareUrl } from './ui/card.js'
 
 const app = document.getElementById('app')
@@ -87,6 +88,12 @@ function showWorldCanvas(show) {
 // ---------- ① 输入 ----------
 function goInput() {
   genId++
+  // 离开世界：清理 splat 接管并恢复 2.5D 画布可见
+  if (window.__splatHandle) {
+    disposeSplat(window.__splatHandle)
+    window.__splatHandle = null
+    if (scene) { scene._paused = false; scene.renderer.domElement.style.visibility = '' }
+  }
   if (scene) { scene.dispose(); scene = null }
   showWorldCanvas(false)
   const ov = mountOverlay(`
@@ -177,6 +184,8 @@ function enterGrowing(recipe) {
       setTimeout(() => { if (genId === myGen) enterWorld(recipe) }, 380)
     }
   })
+  // 完成兜底：rAF 被后台标签页冻结时 onProgress 永不触发，setTimeout 强制进世界页
+  setTimeout(() => { if (genId === myGen && scene) enterWorld(recipe) }, dur + 1200)
 }
 
 // ---------- ③ 世界（漫游） ----------
@@ -188,6 +197,7 @@ function enterWorld(recipe, { instant = false } = {}) {
   if (!scene) return goInput()
   scene.setWorld(recipe)
   if (instant) scene.startGrowth(900) // 秒开也有一段极短生长仪式（不阻塞，~0.9s）
+  tryEnableSplat(recipe) // 尝试 splat 真 3D；无资产/失败自动保持 2.5D（不阻塞流程）
   const ov = mountOverlay(`
     <div class="world-hud">
       <div class="hud-left">
@@ -203,6 +213,24 @@ function enterWorld(recipe, { instant = false } = {}) {
   ov.querySelector('#btnSeal').addEventListener('click', () => goSeal(recipe))
   ov.querySelector('#btnAgain').addEventListener('click', goInput)
   if (myGen === genId) qualityWatchdog()
+}
+
+// splat 真 3D 接管：配方带 splatUrl/spzUrl 时尝试加载，成功则暂停 2.5D，失败保持 2.5D
+async function tryEnableSplat(recipe) {
+  // 测试注入：?splat=1 时给配方挂本地 test.splat（验证用，正式流程无此参数则不注入）
+  const params = new URLSearchParams(location.search)
+  if (params.get('splat') === '1' && !recipe.ksplatUrl && !recipe.splatUrl && !recipe.spzUrl) {
+    recipe.splatUrl = './worlds/test.splat' // 内容为 ksplat 布局（见 scripts/splat2ksplat.mjs），后缀 .splat 通过 loadFile 检查
+  }
+  if (!recipe.ksplatUrl && !recipe.splatUrl && !recipe.spzUrl) return
+  const wc = document.getElementById('wc')
+  if (!wc || !scene) return
+  const handle = await tryLoadSplat(recipe, wc)
+  if (!handle) { console.log('[worldseed] splat 不可用，保持 2.5D'); return }
+  window.__splatHandle = handle
+  scene._paused = true // 暂停 2.5D rAF，让 splat viewer 接管渲染
+  scene.renderer.domElement.style.visibility = 'hidden' // 隐藏 2.5D 画布避免双画布叠加
+  console.log('[worldseed] splat 真 3D 已接管')
 }
 
 // ---------- ④ 封存 ----------

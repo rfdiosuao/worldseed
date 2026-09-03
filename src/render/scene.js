@@ -8,6 +8,7 @@ import { rngFromSeed } from '../core/recipe.js'
 export class WorldScene {
   constructor(container) {
     this.container = container
+    this._paused = false
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
     this.renderer.setSize(container.clientWidth, container.clientHeight)
@@ -181,6 +182,7 @@ export class WorldScene {
   // ---- 帧循环 ----
   _loop() {
     this._raf = requestAnimationFrame(() => this._loop())
+    if (this._paused) return // splat 接管时暂停 2.5D 渲染（保留 rAF 以便恢复）
     const dt = this._clock.getDelta()
     const t = this._clock.getElapsedTime()
     if (this._growth) this._stepGrowth()
