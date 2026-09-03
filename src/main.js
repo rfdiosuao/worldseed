@@ -148,17 +148,20 @@ function startGenerate(text) {
     // 命中 → 秒开直进世界（主路径）
     if (cached.url) recipe.worldMarbleUrl = cached.url
     enterWorld(recipe, { instant: true })
-  } else if (marbleConfigured()) {
+  } else if (marbleConfigured() && params.get('demo') !== '1') {
     // 未命中 + Marble 已配置 → 真生成（进度跟随轮询，约 5 分钟）
     enterGrowing(recipe, { real: true })
   } else {
-    // 未命中 + Marble 未配置 → 装饰生长动画（离线兜底）
+    // 未命中 + Marble 未配置（或 ?demo=1 调试）→ 装饰生长动画（离线兜底）
     setCached(recipe.seed, { at: Date.now() })
     enterGrowing(recipe, { real: false })
   }
 }
 
 // ---------- ② 生长 ----------
+const GROW_STAGES = [
+  '一念成形', '山川凝聚', '光在编织', '星辰归位', '你的世界，正在醒来',
+]
 function enterGrowing(recipe, { real = false } = {}) {
   genId++
   const myGen = genId
@@ -169,33 +172,44 @@ function enterGrowing(recipe, { real = false } = {}) {
   const ov = mountOverlay(`
     <div class="stage" id="stage-grow">
       <div class="grow-inner">
-        <h2 class="grow-title">世界正在生长…</h2>
-        <div class="narration" id="narration">
-          ${recipe.narration.map(n => `<span class="n-line${n.startsWith('「') ? ' sub' : ''}">${n}</span>`).join('')}
+        <div class="grow-aura" aria-hidden="true">
+          <div class="grow-aura-core"></div>
         </div>
+        <h2 class="grow-title">世界正在生长…</h2>
+        <div class="grow-stage" id="growstage">${GROW_STAGES[0]}</div>
         <div class="grow-progress"><i id="growbar"></i></div>
+        <div class="grow-pct" id="growpct">0%</div>
         <p class="grow-tip">山川正在成形，光正找到回家的路</p>
       </div>
     </div>
   `)
   const bar = ov.querySelector('#growbar')
-  const lines = [...ov.querySelectorAll('.n-line')]
+  const stageEl = ov.querySelector('#growstage')
+  const pctEl = ov.querySelector('#growpct')
+  // 统一进度 UI：推进进度条 / 阶段文案轮播 / 百分比
+  const setProgress = p => {
+    if (genId !== myGen) return
+    const clamped = Math.max(0, Math.min(1, p))
+    bar.style.width = (clamped * 100).toFixed(1) + '%'
+    pctEl.textContent = Math.round(clamped * 100) + '%'
+    const idx = Math.min(GROW_STAGES.length - 1, Math.floor(clamped * GROW_STAGES.length))
+    stageEl.textContent = GROW_STAGES[idx]
+  }
   const dur = GROW_MS
 
   if (real) {
     // 真生成：进度跟随 Marble 轮询，动画持续到世界就绪
     scene.startGrowth(9999999, () => {}) // 无限生长仪式（不主动结束），由生成完成接管
+    const startT = Date.now()
     ;(async () => {
       try {
         const operationId = await generateWorld(recipe.scenePrompt, { displayName: recipe.text.slice(0, 32) })
         const result = await pollOperation(operationId, {
           onProgress: d => {
             if (genId !== myGen) return
-            // 用轮询时长平滑推进进度条（0-80%），剩余 20% 留给「世界就绪」过渡
-            const p = Math.min(0.8, (Date.now() - startT) / (5 * 60 * 1000) * 0.8)
-            bar.style.width = (p * 100).toFixed(1) + '%'
-            const idx = Math.min(lines.length - 1, Math.floor(p * lines.length))
-            lines.forEach((el, i) => el.classList.toggle('on', i <= idx))
+            // 用轮询时长平滑推进进度条（0-85%），剩余 15% 留给「世界就绪」过渡
+            const p = Math.min(0.85, (Date.now() - startT) / (5 * 60 * 1000) * 0.85)
+            setProgress(p)
           },
         })
         if (genId !== myGen) return
@@ -203,26 +217,23 @@ function enterGrowing(recipe, { real = false } = {}) {
         recipe.worldMarbleUrl = result.worldMarbleUrl
         recipe.spzUrls = result.spzUrls
         setCached(recipe.seed, { at: Date.now(), url: result.worldMarbleUrl, spz: result.spzUrls })
-        bar.style.width = '100%'
-        lines.forEach(el => el.classList.add('on'))
+        setProgress(1)
+        stageEl.textContent = '世界，长出来了'
         setTimeout(() => { if (genId === myGen) enterWorld(recipe) }, 600)
       } catch (e) {
         console.warn('[worldseed] Marble 生成失败，降级 2.5D：', e)
         if (genId === myGen) {
-          bar.style.width = '100%'
+          setProgress(1)
+          stageEl.textContent = '世界，长出来了'
           setTimeout(() => { if (genId === myGen) enterWorld(recipe) }, 400)
         }
       }
     })()
-    const startT = Date.now()
     return
   }
 
   scene.startGrowth(dur, p => {
-    if (genId !== myGen) return
-    bar.style.width = (p * 100).toFixed(1) + '%'
-    const idx = Math.min(lines.length - 1, Math.floor(p * lines.length))
-    lines.forEach((el, i) => el.classList.toggle('on', i <= idx))
+    setProgress(p)
     if (p >= 1 && scene) {
       setTimeout(() => { if (genId === myGen) enterWorld(recipe) }, 380)
     }
