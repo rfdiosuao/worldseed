@@ -1,6 +1,6 @@
 // marble.js —— World Labs Marble API 客户端（经 serverless 代理转发，前端不碰 key）
-// P2 骨架：代理未部署时调用会优雅失败并提示；部署后填写代理地址即可启用真生成。
-// 流程：generateWorld(prompt) → operation_id → pollOperation(id) → done 后返回 world_marble_url
+// 流程：generateWorld(prompt) → operation_id → pollOperation(id) → done 后返回世界资产
+// 展示：优先 iframe world_marble_url；若被 CSP 拒绝（实测 DENY），降级用 spzUrls 自渲染。
 
 const PROXY_BASE = import.meta.env.VITE_MARBLE_PROXY_URL || '' // 例如 https://your-worker.workers.dev
 
@@ -30,7 +30,8 @@ export async function generateWorld(textPrompt, { model = 'marble-1.1', displayN
   return data.operation_id
 }
 
-// 轮询 operation；done 后返回 { worldMarbleUrl, spzUrls, worldId, cost }
+// 轮询 operation；onProgress 每次轮询回调（供生长动画跟随真实进度）
+// done 后返回 { worldId, worldMarbleUrl, spzUrls, semantics, cost }
 export async function pollOperation(operationId, { intervalMs = 6000, timeoutMs = 10 * 60 * 1000, onProgress } = {}) {
   if (!marbleConfigured()) throw new MarbleNotConfiguredError()
   const t0 = Date.now()
@@ -48,10 +49,11 @@ export async function pollOperation(operationId, { intervalMs = 6000, timeoutMs 
       if (data.error) throw new MarbleApiError(500, data.error.message || '生成失败')
       const r = data.response || {}
       return {
-        worldId: r.world_id,
-        worldMarbleUrl: r.world_marble_url,
+        worldId: r.id || r.world_id,
+        worldMarbleUrl: r.world_marble_url || '',
         spzUrls: (r.assets && r.assets.splats && r.assets.splats.spz_urls) || {},
-        cost: data.cost,
+        semantics: (r.assets && r.assets.splats && r.assets.splats.semantics_metadata) || null,
+        cost: data.cost || null,
       }
     }
     await new Promise(r => setTimeout(r, intervalMs))

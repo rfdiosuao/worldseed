@@ -7,6 +7,7 @@ import { getCached, setCached, prefillLibrary } from './state/cache.js'
 import { WorldScene } from './render/scene.js'
 import { tryLoadSplat, disposeSplat } from './render/splat.js'
 import { mountCard, buildShareUrl } from './ui/card.js'
+import { generateWorld, pollOperation, marbleConfigured, MarbleApiError } from './core/marble.js'
 
 const app = document.getElementById('app')
 const params = new URLSearchParams(location.search)
@@ -145,15 +146,20 @@ function startGenerate(text) {
   const cached = getCached(recipe.seed)
   if (cached) {
     // 命中 → 秒开直进世界（主路径）
+    if (cached.url) recipe.worldMarbleUrl = cached.url
     enterWorld(recipe, { instant: true })
+  } else if (marbleConfigured()) {
+    // 未命中 + Marble 已配置 → 真生成（进度跟随轮询，约 5 分钟）
+    enterGrowing(recipe, { real: true })
   } else {
+    // 未命中 + Marble 未配置 → 装饰生长动画（离线兜底）
     setCached(recipe.seed, { at: Date.now() })
-    enterGrowing(recipe)
+    enterGrowing(recipe, { real: false })
   }
 }
 
 // ---------- ② 生长 ----------
-function enterGrowing(recipe) {
+function enterGrowing(recipe, { real = false } = {}) {
   genId++
   const myGen = genId
   showWorldCanvas(true)
@@ -175,6 +181,43 @@ function enterGrowing(recipe) {
   const bar = ov.querySelector('#growbar')
   const lines = [...ov.querySelectorAll('.n-line')]
   const dur = GROW_MS
+
+  if (real) {
+    // 真生成：进度跟随 Marble 轮询，动画持续到世界就绪
+    scene.startGrowth(9999999, () => {}) // 无限生长仪式（不主动结束），由生成完成接管
+    ;(async () => {
+      try {
+        const operationId = await generateWorld(recipe.scenePrompt, { displayName: recipe.text.slice(0, 32) })
+        const result = await pollOperation(operationId, {
+          onProgress: d => {
+            if (genId !== myGen) return
+            // 用轮询时长平滑推进进度条（0-80%），剩余 20% 留给「世界就绪」过渡
+            const p = Math.min(0.8, (Date.now() - startT) / (5 * 60 * 1000) * 0.8)
+            bar.style.width = (p * 100).toFixed(1) + '%'
+            const idx = Math.min(lines.length - 1, Math.floor(p * lines.length))
+            lines.forEach((el, i) => el.classList.toggle('on', i <= idx))
+          },
+        })
+        if (genId !== myGen) return
+        // 完成：写入缓存（含 viewer URL）→ 世界页
+        recipe.worldMarbleUrl = result.worldMarbleUrl
+        recipe.spzUrls = result.spzUrls
+        setCached(recipe.seed, { at: Date.now(), url: result.worldMarbleUrl, spz: result.spzUrls })
+        bar.style.width = '100%'
+        lines.forEach(el => el.classList.add('on'))
+        setTimeout(() => { if (genId === myGen) enterWorld(recipe) }, 600)
+      } catch (e) {
+        console.warn('[worldseed] Marble 生成失败，降级 2.5D：', e)
+        if (genId === myGen) {
+          bar.style.width = '100%'
+          setTimeout(() => { if (genId === myGen) enterWorld(recipe) }, 400)
+        }
+      }
+    })()
+    const startT = Date.now()
+    return
+  }
+
   scene.startGrowth(dur, p => {
     if (genId !== myGen) return
     bar.style.width = (p * 100).toFixed(1) + '%'
@@ -205,6 +248,7 @@ function enterWorld(recipe, { instant = false } = {}) {
         <div class="hud-text">「${recipe.text}」</div>
       </div>
       <div class="hud-actions">
+        ${recipe.worldMarbleUrl ? '<button id="btnWorld" class="btn-ghost world-open">走进世界 ↗</button>' : ''}
         <button id="btnSeal" class="btn-ghost">封存成卡片</button>
         <button id="btnAgain" class="btn-ghost">换个念头</button>
       </div>
@@ -212,6 +256,8 @@ function enterWorld(recipe, { instant = false } = {}) {
   `)
   ov.querySelector('#btnSeal').addEventListener('click', () => goSeal(recipe))
   ov.querySelector('#btnAgain').addEventListener('click', goInput)
+  const btnWorld = ov.querySelector('#btnWorld')
+  if (btnWorld) btnWorld.addEventListener('click', () => window.open(recipe.worldMarbleUrl, '_blank'))
   if (myGen === genId) qualityWatchdog()
 }
 
