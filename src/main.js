@@ -7,6 +7,7 @@ import { getCached, setCached, prefillLibrary } from './state/cache.js'
 import { WorldScene } from './render/scene.js'
 import { tryLoadSplat, disposeSplat } from './render/splat.js'
 import { mountCard, buildShareUrl } from './ui/card.js'
+import { createGrowParticles } from './ui/growParticles.js'
 import { generateWorld, pollOperation, marbleConfigured, MarbleApiError } from './core/marble.js'
 
 const app = document.getElementById('app')
@@ -173,6 +174,7 @@ function enterGrowing(recipe, { real = false } = {}) {
     <div class="stage" id="stage-grow">
       <div class="grow-inner">
         <div class="grow-aura" aria-hidden="true">
+          <canvas class="grow-particles"></canvas>
           <div class="grow-aura-core"></div>
         </div>
         <h2 class="grow-title">世界正在生长…</h2>
@@ -186,7 +188,11 @@ function enterGrowing(recipe, { real = false } = {}) {
   const bar = ov.querySelector('#growbar')
   const stageEl = ov.querySelector('#growstage')
   const pctEl = ov.querySelector('#growpct')
-  // 统一进度 UI：推进进度条 / 阶段文案轮播 / 百分比
+  // 统一进度 UI：推进进度条 / 阶段文案轮播 / 百分比；到 100% 时停掉粒子
+  let particlesStopped = false
+  const stopParticles = () => {
+    if (!particlesStopped && growParticles) { growParticles.stop(); particlesStopped = true }
+  }
   const setProgress = p => {
     if (genId !== myGen) return
     const clamped = Math.max(0, Math.min(1, p))
@@ -194,7 +200,14 @@ function enterGrowing(recipe, { real = false } = {}) {
     pctEl.textContent = Math.round(clamped * 100) + '%'
     const idx = Math.min(GROW_STAGES.length - 1, Math.floor(clamped * GROW_STAGES.length))
     stageEl.textContent = GROW_STAGES[idx]
+    if (clamped >= 1) stopParticles()
   }
+  // 星尘汇聚粒子：颜色取自世界情绪调色板，随生长推进
+  const growCv = ov.querySelector('.grow-particles')
+  const growParticles = growCv ? createGrowParticles(growCv, {
+    colors: [recipe.palette.glow, recipe.palette.primary, '#ffffff'],
+    count: 70,
+  }) : null
   const dur = GROW_MS
 
   if (real) {
