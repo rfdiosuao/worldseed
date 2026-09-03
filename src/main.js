@@ -79,6 +79,7 @@ function goInput() {
   showWorldCanvas(false)
   const ov = mountOverlay(`
     <div class="stage" id="stage-input">
+      <div class="hero-bg" aria-hidden="true"></div>
       <div class="hero-inner">
         <span class="badge">Eazo 数字艺术黑客松 · WORLDSEED</span>
         <h1 class="slogan">说一句话，30 秒<br/>长出<em>一个能走进去的世界</em></h1>
@@ -233,7 +234,16 @@ function setupGlowOrbs() {
   orb2.className = 'glow-orb orb-2'
   document.body.append(orb1, orb2)
   let tx = innerWidth * 0.3, ty = innerHeight * 0.35
-  window.addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY }, { passive: true })
+  const canHover = window.matchMedia('(hover: hover)').matches
+  window.addEventListener('pointermove', e => {
+    tx = e.clientX; ty = e.clientY
+    if (canHover) {
+      // hero 背景视差（轻微反向位移，仅桌面）
+      const r = document.documentElement
+      r.style.setProperty('--px', (((e.clientX / innerWidth) - 0.5) * -14).toFixed(1) + 'px')
+      r.style.setProperty('--py', (((e.clientY / innerHeight) - 0.5) * -10).toFixed(1) + 'px')
+    }
+  }, { passive: true })
   const tick = () => {
     orb1.style.left = tx + 'px'
     orb1.style.top = ty + 'px'

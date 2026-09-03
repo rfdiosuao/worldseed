@@ -78,6 +78,25 @@ body {
 .stage.hidden { display: none; }
 
 /* ---------- ① 输入页（Hero） ---------- */
+/* 深邃太空星云背景（桌面视差；移动端禁用） */
+.hero-bg {
+  position: absolute;
+  inset: -40px;
+  background-image:
+    radial-gradient(ellipse at 50% 42%, rgba(10,10,18,0) 30%, rgba(10,10,18,0.72) 82%),
+    url('./assets/hero-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  transform: translate3d(var(--px, 0px), var(--py, 0px), 0);
+  will-change: transform;
+  z-index: 0;
+  pointer-events: none;
+}
+@media (hover: none), (pointer: coarse) {
+  .hero-bg { inset: 0; transform: none; }
+}
+.stage#stage-input { position: relative; overflow: hidden; }
+.stage#stage-input .hero-inner { position: relative; z-index: 1; }
 .hero-inner {
   max-width: 640px;
   width: 100%;
@@ -294,11 +313,24 @@ body {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .seal-card-inner {
-  background: var(--bg-2);
+  background:
+    url('./assets/card-texture.jpg') center / cover no-repeat,
+    var(--bg-2);
   border-radius: 20px;
   padding: 24px 22px 20px;
   text-align: left;
+  position: relative;
 }
+.seal-card-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: rgba(13, 13, 26, 0.30);
+  pointer-events: none;
+  z-index: 0;
+}
+.seal-card-inner > * { position: relative; z-index: 1; }
 .seal-card-head {
   display: flex;
   justify-content: space-between;
