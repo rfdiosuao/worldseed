@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "generated": "2026-09-03",
+  "note": "预生成世界库：P1 接入 Marble API 后填充 spz 路径；P0 主路径为 2.5D 程序化世界。",
+  "worlds": [
+    {
+      "id": "ws-001",
+      "mood": "longing",
+      "name": "思念之岛",
+      "status": "reserved",
+      "spz": "",
+      "prompt": "A serene longing floating island in twilight, soft glowing purple edges, drifting light particles like fireflies, dreamy cinematic haze, ethereal minimalist fantasy landscape, no people, no text"
+    },
+    {
+      "id": "ws-002",
+      "mood": "hopeful",
+      "name": "晨曦高原",
+      "status": "reserved",
+      "spz": "",
+      "prompt": "A hopeful highland plateau at first light, warm green glow, gentle mist, tiny glowing seeds floating upward, painterly volumetric light, ethereal minimalist fantasy landscape, no people, no text"
+    },
+    {
+      "id": "ws-003",
+      "mood": "melancholy",
+      "name": "暮色裂谷",
+      "status": "reserved",
+      "spz": "",
+      "prompt": "A melancholy canyon under violet dusk, deep shadows, faint blue mist, slow drifting ash-like particles, dreamy cinematic haze, ethereal minimalist fantasy landscape, no people, no text"
+    }
+  ]
+}
