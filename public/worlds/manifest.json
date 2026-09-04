@@ -1,31 +1,18 @@
 {
-  "version": 1,
+  "version": 2,
   "generated_at": "2026-09-04",
-  "source": "World Labs Marble API（真实生成）",
-  "world_id": "c3739721-6590-4125-ad70-4498a04a4e72",
-  "model": "marble-1.1",
-  "prompt": "A tiny floating island in a starry night sky, glowing softly",
-  "world_marble_url": "https://marble.worldlabs.ai/world/c3739721-6590-4125-ad70-4498a04a4e72",
-  "assets": {
-    "spz_100k": {
-      "file": "public/worlds/marble-100k.spz",
-      "size_bytes": 1244408,
-      "format": "spz (gzip, NGSP magic)",
-      "status": "downloaded",
-      "note": "页面内解析 >60s，主路径不用；预生成库备用"
-    },
-    "spz_500k": {
-      "file": "public/worlds/marble-500k.spz",
-      "size_bytes": 7279686,
-      "format": "spz (gzip, NGSP magic)",
-      "status": "downloaded",
-      "note": "页面内解析更慢；仅预生成库备用"
-    },
-    "pano": {
-      "file": "public/worlds/pano-test.jpg",
-      "size_bytes": 180728,
-      "source_url": "https://cdn.marble.worldlabs.ai/c3739721-6590-4125-ad70-4498a04a4e72/2dd3d088-77a7-40d3-b5d6-2530a882f9de_panos/rgb_0.png",
-      "note": "11MB PNG 压缩为 180KB JPEG(2048x1024)，主路径全景背景"
-    }
-  }
+  "source": "World Labs Marble API（自生成）+ Marble 公共画廊（缩略图）",
+  "curated_worlds": {
+    "想你": { "pano": "public/worlds/w-xiangni-pano.jpg", "spz": "public/worlds/w-xiangni-100k.spz", "url": "https://marble.worldlabs.ai/world/1a46e1b3-9ea5-4618-8f66-8dac7574c8c1", "model": "marble-1.1" },
+    "晚安": { "pano": "public/worlds/w-wanan-pano.jpg", "spz": "public/worlds/w-wanan-100k.spz", "url": "https://marble.worldlabs.ai/world/641660bb-bfe1-4944-a3d3-f439068b9f63", "model": "marble-1.1" },
+    "自由的风": { "pano": "public/worlds/w-ziyou-pano.jpg", "spz": "public/worlds/w-ziyou-100k.spz", "url": "https://marble.worldlabs.ai/world/875a39a9-4fe2-4939-bec1-8676fa563e7a", "model": "marble-1.1" }
+  },
+  "gallery_worlds": 14,
+  "gallery_dir": "public/worlds/gallery/",
+  "notes": [
+    "示例词（想你/晚安/自由的风）使用自生成世界的完整资产（pano + spz）",
+    "画廊世界为 Marble 公共画廊，仅可获取缩略图 + 官方 viewer URL（API 返回 World not found，无法取 spz/pano）",
+    "非示例词 → 确定性随机抽画廊世界（缩略图氛围 + 官方 3D 跳转 + 随机色星球）",
+    "原始测试世界 c3739721-6590-4125-ad70-4498a04a4e72 的资产保留于 marble-100k/500k.spz 与 pano-test.jpg"
+  ]
 }

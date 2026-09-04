@@ -4,8 +4,57 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a12" />
-    <meta name="description" content="一念成界 · Worldseed —— 说一句话，30 秒长出一个能走进去的世界；封存成卡片，寄给想让他懂你的人。" />
-    <title>一念成界 · Worldseed</title>
+
+    <!-- ===== SEO 基础 ===== -->
+    <title>一念成界 · Worldseed —— 说一句话，长出一个能走进去的世界</title>
+    <meta name="description" content="说一句话，30 秒长出一个只属于你、能走进去的世界；封存成卡片，寄给那个你想让他懂你的人。基于 World Labs Marble API 的 AI 3D 世界生成器。" />
+    <meta name="keywords" content="一念成界, Worldseed, AI 3D 世界生成, Marble API, Gaussian Splatting, 高斯溅射, 数字艺术, 黑客松, 世界生成器, 情绪可视化, 卡片分享" />
+    <meta name="author" content="Worldseed Team" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://github.com/rfdiosuao/worldseed" />
+
+    <!-- ===== Open Graph（社交分享卡片） ===== -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="一念成界 · Worldseed" />
+    <meta property="og:title" content="一念成界 · Worldseed —— 说一句话，长出一个能走进去的世界" />
+    <meta property="og:description" content="把说不出口的话，变成他走进去的世界。30 秒生成真 3D 世界，封存成卡片寄给想让他懂你的人。" />
+    <meta property="og:url" content="https://github.com/rfdiosuao/worldseed" />
+    <meta property="og:image" content="https://cdn.marble.worldlabs.ai/2c4393fe-e468-44de-9b75-b38401c2f41c/15c6cc4f-0566-4305-94d0-8b594ffea49b_sand_mpi/thumbnail_1440.webp" />
+    <meta property="og:image:width" content="1440" />
+    <meta property="og:image:height" content="1440" />
+    <meta property="og:locale" content="zh_CN" />
+
+    <!-- ===== Twitter Card ===== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="一念成界 · Worldseed —— 说一句话，长出一个能走进去的世界" />
+    <meta name="twitter:description" content="把说不出口的话，变成他走进去的世界。30 秒生成真 3D 世界，封存成卡片寄给想让他懂你的人。" />
+    <meta name="twitter:image" content="https://cdn.marble.worldlabs.ai/2c4393fe-e468-44de-9b75-b38401c2f41c/15c6cc4f-0566-4305-94d0-8b594ffea49b_sand_mpi/thumbnail_1440.webp" />
+
+    <!-- ===== 结构化数据（JSON-LD） ===== -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "一念成界 · Worldseed",
+      "alternateName": "Worldseed",
+      "description": "说一句话，30 秒长出一个能走进去的世界；封存成卡片，寄给那个你想让他懂你的人。基于 World Labs Marble API 与 Gaussian Splatting 的 AI 3D 世界生成器。",
+      "applicationCategory": "EntertainmentApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "zh-CN",
+      "url": "https://github.com/rfdiosuao/worldseed",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+      "featureList": [
+        "一句话生成 3D 世界",
+        "真 3D 高斯溅射渲染（Marble SPZ）",
+        "360° 全景世界影像",
+        "封存卡片 + 二维码分享（零后端）",
+        "预生成世界库秒开",
+        "三层兜底离线可演示"
+      ]
+    }
+    </script>
+
+    <!-- ===== 性能（hero-bg 由 CSS 加载，构建后带 hash，不做 preload） ===== -->
   </head>
   <body>
     <div id="app"></div>
