@@ -109,9 +109,29 @@ export class WorldScene {
       new THREE.MeshBasicMaterial({ color: new THREE.Color(pal.glow), wireframe: true, transparent: true, opacity: 0.14 })
     )
 
+    // 大气层光晕（半透明发光壳，随星球生长）
+    const atmo = new THREE.Mesh(
+      new THREE.SphereGeometry(1.95, 32, 24),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(pal.glow), transparent: true, opacity: 0,
+        side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
+      })
+    )
+
+    // 行星环（倾斜的发光环，华丽感）
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(2.2, 3.0, 48),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(pal.particle), transparent: true, opacity: 0,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false,
+      })
+    )
+    ring.rotation.x = Math.PI / 2.6
+    ring.rotation.z = 0.35
+
     this.worldGroup = new THREE.Group()
     this.worldGroup.scale.setScalar(0.01)
-    this.worldGroup.add(world, wire)
+    this.worldGroup.add(world, wire, atmo, ring)
     this.scene.add(this.worldGroup)
 
     // 光晕
@@ -172,6 +192,14 @@ export class WorldScene {
     if (this.worldGroup) {
       this.worldGroup.scale.setScalar(Math.max(0.01, e))
       this.worldGroup.rotation.y = p * Math.PI * 0.6
+      // 星球本体淡入
+      this.worldGroup.children[0].material.opacity = p
+      // 能量线框：0.14 满值淡入
+      if (this.worldGroup.children[1]) this.worldGroup.children[1].material.opacity = 0.14 * p
+      // 大气层：0.35 满值淡入
+      if (this.worldGroup.children[2]) this.worldGroup.children[2].material.opacity = 0.35 * p
+      // 行星环：0.5 满值淡入
+      if (this.worldGroup.children[3]) this.worldGroup.children[3].material.opacity = 0.5 * p
     }
     if (this.glow) this.glow.material.opacity = p * 0.85
     if (this.particles) this.particles.material.opacity = p * 0.9

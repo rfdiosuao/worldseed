@@ -2,7 +2,8 @@
 // INPUT → GROWING → WORLD → SEAL；hash 分享直达；缓存命中秒开；?fast=1 调试加速
 import './style.css'
 import heroBgUrl from './assets/hero-bg.jpg'
-import { buildRecipe, recipeFromHash } from './core/recipe.js'
+import { buildRecipe, recipeFromHash, rngFromSeed } from './core/recipe.js'
+import { pickGalleryWorld } from './core/gallery.js'
 import { getCached, setCached, prefillLibrary } from './state/cache.js'
 import { WorldScene } from './render/scene.js'
 import { tryLoadSplat, disposeSplat } from './render/splat.js'
@@ -141,6 +142,7 @@ function goInput() {
 }
 
 // ---------- 生成入口：缓存命中秒开，否则生长 ----------
+const CURATED_TEXT = ['想你', '晚安', '对不起', '自由的风', '一个人的海']
 function startGenerate(text) {
   const recipe = buildRecipe(text)
   currentRecipe = recipe
@@ -165,13 +167,36 @@ function startGenerate(text) {
     if (cached.spzUrl) recipe.spzUrl = cached.spzUrl
     if (cached.pano) recipe.panoUrl = cached.pano
     enterWorld(recipe, { instant: true })
+  } else if (!CURATED_TEXT.includes(text.trim())) {
+    // 非示例词 → 随机抽一个画廊世界（缩略图氛围背景 + 官方 3D 可跳转）
+    const g = pickGalleryWorld(recipe.seed)
+    recipe.panoUrl = g.img
+    recipe.worldMarbleUrl = g.url
+    recipe.palette = randomPalette(recipe.seed) // 2.5D 星球随机彩色
+    setCached(recipe.seed, { prefilled: true, at: Date.now(), pano: g.img, url: g.url })
+    enterWorld(recipe, { instant: true })
   } else if (marbleConfigured() && params.get('demo') !== '1') {
-    // 未命中 + Marble 已配置 → 真生成（进度跟随轮询，约 5 分钟）
+    // 示例词 + Marble 已配置 → 真生成（进度跟随轮询，约 5 分钟）
     enterGrowing(recipe, { real: true })
   } else {
-    // 未命中 + Marble 未配置（或 ?demo=1 调试）→ 装饰生长动画（离线兜底）
+    // 示例词 + Marble 未配置（或 ?demo=1 调试）→ 装饰生长动画（离线兜底）
     setCached(recipe.seed, { at: Date.now() })
     enterGrowing(recipe, { real: false })
+  }
+}
+
+// 随机华丽调色板（由 seed 确定，同一词始终同色）
+function randomPalette(seed) {
+  const rng = rngFromSeed(seed)
+  const hsl = (h, s, l) => `hsl(${h},${s}%,${l}%)`
+  const h1 = Math.floor(rng() * 360)
+  const h2 = (h1 + 60 + Math.floor(rng() * 120)) % 360
+  return {
+    primary: hsl(h1, 80, 55),
+    secondary: hsl(h2, 70, 25),
+    glow: hsl(h1, 95, 70),
+    particle: hsl(h2, 85, 65),
+    label: '梦',
   }
 }
 
