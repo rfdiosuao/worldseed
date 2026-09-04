@@ -283,9 +283,10 @@ function enterWorld(recipe, { instant = false } = {}) {
   if (!scene) return goInput()
   window.__wsScene = scene // 调试钩子：暴露 scene 供验证（正式无碍）
   scene.setWorld(recipe)
-  if (recipe.panoUrl) scene.setPano(recipe.panoUrl) // 真实世界全景背景（有则用）
+  if (recipe.panoUrl) scene.setPano(recipe.panoUrl) // 真实世界全景背景（主路径，永远显示）
   if (instant) scene.startGrowth(900) // 秒开也有一段极短生长仪式（不阻塞，~0.9s）
-  tryEnableSplat(recipe) // 尝试 splat 真 3D；无资产/失败自动保持 2.5D（不阻塞流程）
+  // 不再自动启用 Spark——用户机器可能跑不动，自动接管会导致黑屏
+  // 改为：HUD 提供「真 3D 视图」按钮，点击才尝试，失败自动回全景
   const ov = mountOverlay(`
     <div class="world-hud">
       <div class="hud-left">
@@ -293,6 +294,7 @@ function enterWorld(recipe, { instant = false } = {}) {
         <div class="hud-text">「${recipe.text}」</div>
       </div>
       <div class="hud-actions">
+        ${recipe.spzUrl ? '<button id="btn3d" class="btn-ghost">真 3D 视图</button>' : ''}
         ${recipe.worldMarbleUrl ? '<button id="btnWorld" class="btn-ghost world-open">走进世界 ↗</button>' : ''}
         <button id="btnSeal" class="btn-ghost">封存成卡片</button>
         <button id="btnAgain" class="btn-ghost">换个念头</button>
@@ -303,27 +305,29 @@ function enterWorld(recipe, { instant = false } = {}) {
   ov.querySelector('#btnAgain').addEventListener('click', goInput)
   const btnWorld = ov.querySelector('#btnWorld')
   if (btnWorld) btnWorld.addEventListener('click', () => window.open(recipe.worldMarbleUrl, '_blank'))
+  const btn3d = ov.querySelector('#btn3d')
+  if (btn3d) btn3d.addEventListener('click', () => tryEnableSplat(recipe)) // 手动触发真 3D，失败自动回全景
   if (myGen === genId) qualityWatchdog()
 }
 
 // splat 真 3D 接管：配方带 splatUrl/spzUrl 时尝试加载，成功则暂停 2.5D，失败保持 2.5D
 async function tryEnableSplat(recipe) {
-  // 测试注入：?splat=1 时给配方挂本地 test.splat（验证用，正式流程无此参数则不注入）
+  if (window.__splatHandle) return // 已接管则不重复
   const params = new URLSearchParams(location.search)
   if (params.get('splat') === '1' && !recipe.ksplatUrl && !recipe.splatUrl && !recipe.spzUrl) {
-    recipe.splatUrl = './worlds/test.splat' // 内容为 ksplat 布局（见 scripts/splat2ksplat.mjs），后缀 .splat 通过 loadFile 检查
+    recipe.splatUrl = './worlds/test.splat'
   }
   if (params.get('spzurl') && !recipe.spzUrl) {
-    recipe.spzUrl = params.get('spzurl') // 测试注入：外部 .spz 直链（如 Marble CDN）
+    recipe.spzUrl = params.get('spzurl')
   }
   if (!recipe.ksplatUrl && !recipe.splatUrl && !recipe.spzUrl) return
   const wc = document.getElementById('wc')
   if (!wc || !scene) return
   const handle = await tryLoadSplat(recipe, wc)
-  if (!handle) { console.log('[worldseed] splat 不可用，保持 2.5D'); return }
+  if (!handle) { console.log('[worldseed] splat 不可用，保持全景/2.5D'); toast('真 3D 不可用，已保持全景视图'); return }
   window.__splatHandle = handle
-  scene._paused = true // 暂停 2.5D rAF，让 splat viewer 接管渲染
-  scene.renderer.domElement.style.visibility = 'hidden' // 隐藏 2.5D 画布避免双画布叠加
+  scene._paused = true
+  scene.renderer.domElement.style.visibility = 'hidden'
   console.log('[worldseed] splat 真 3D 已接管')
 }
 
