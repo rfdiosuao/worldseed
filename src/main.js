@@ -41,8 +41,19 @@ function boot() {
   if (location.hash.startsWith('#w=')) {
     const recipe = recipeFromHash(location.hash.slice(3))
     if (recipe) {
+      // 双保险：hash 里没有资产信息时，从缓存补全（兼容旧分享链接）
+      if (!recipe.panoUrl && !recipe.spzUrl) {
+        const cached = getCached(recipe.seed)
+        if (cached) {
+          if (cached.pano) recipe.panoUrl = cached.pano
+          if (cached.spzUrl) recipe.spzUrl = cached.spzUrl
+          if (cached.url) recipe.worldMarbleUrl = cached.url
+        }
+      }
       currentRecipe = recipe
-      setCached(recipe.seed, { at: Date.now(), shared: true })
+      // 保留缓存里的资产字段（不能覆盖清空 pano/spz/url）
+      const prev = getCached(recipe.seed) || {}
+      setCached(recipe.seed, { ...prev, at: Date.now(), shared: true })
       enterWorld(recipe, { instant: true })
       return
     }
@@ -91,13 +102,15 @@ function showWorldCanvas(show) {
 // ---------- ① 输入 ----------
 function goInput() {
   genId++
-  // 离开世界：清理 splat 接管并恢复 2.5D 画布可见
-  if (window.__splatHandle) {
-    disposeSplat(window.__splatHandle)
-    window.__splatHandle = null
-    if (scene) { scene._paused = false; scene.renderer.domElement.style.visibility = '' }
-  }
-  if (scene) { scene.dispose(); scene = null }
+  // 离开世界：清理 splat 接管并恢复 2.5D 画布可见（异常也不能阻断返回输入页）
+  try {
+    if (window.__splatHandle) {
+      disposeSplat(window.__splatHandle)
+      window.__splatHandle = null
+      if (scene) { scene._paused = false; scene.renderer.domElement.style.visibility = '' }
+    }
+    if (scene) { scene.dispose(); scene = null }
+  } catch (e) { console.warn('[worldseed] 场景清理异常（忽略，继续返回）：', e) }
   showWorldCanvas(false)
   const ov = mountOverlay(`
     <div class="stage" id="stage-input">

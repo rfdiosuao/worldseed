@@ -98,11 +98,12 @@ export function buildRecipe(text, opts = {}) {
   }
 }
 
-// ---- 把配方编码进 URL hash（零后端分享：对方打开同一静态页即可重建）----
+// ---- 把配方编码进 URL hash（零后端分享：对方打开同一静态页即可重建，含全景/3D 资产）----
 export function recipeToHash(recipe) {
   const payload = JSON.stringify({
     t: recipe.text, s: recipe.seed, m: recipe.mood,
     f: recipe.form, l: recipe.light, p: recipe.terrainSeed, v: recipe.schema,
+    pano: recipe.panoUrl || '', spz: recipe.spzUrl || '', url: recipe.worldMarbleUrl || '',
   })
   return btoa(unescape(encodeURIComponent(payload))) // UTF-8 → base64
 }
@@ -111,7 +112,11 @@ export function recipeFromHash(hash) {
   try {
     const json = decodeURIComponent(escape(atob(hash)))
     const d = JSON.parse(json)
-    return buildRecipe(d.t, { salt: 'worldseed-v1' })
+    const recipe = buildRecipe(d.t, { salt: 'worldseed-v1' })
+    if (d.pano) recipe.panoUrl = d.pano
+    if (d.spz) recipe.spzUrl = d.spz
+    if (d.url) recipe.worldMarbleUrl = d.url
+    return recipe
   } catch (e) {
     return null
   }
