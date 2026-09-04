@@ -18,8 +18,11 @@ export async function tryLoadSplat(recipe, container) {
     })
 
     // 0.4.7 API：addSplatScene 按后缀自动识别格式（.spz/.splat/.ply）
+    // B 轨实测：progressiveLoad 对 Marble .spz 无效（100k 点 30s+ 无首帧，主线程占满）
+    // → 回退非渐进，保持加载期覆盖层提示；实际展示以全景背景为主（见 docs/spz-benchmark.md）
     await viewer.addSplatScene(url, {
-      progressiveLoad: false,        // 关闭渐进加载（本地/直链更稳）
+      progressiveLoad: false,
+      showLoadingUI: false,
     })
 
     return { viewer, container }

@@ -1,10 +1,11 @@
-<!doctype html><html><head><meta charset="utf-8"><title>spz 隔离测试</title>
-<style>body{margin:0;background:#000;color:#fff;font:14px monospace}#log{position:fixed;top:0;left:0;right:0;padding:8px;background:rgba(0,0,0,.7);white-space:pre-wrap;z-index:10}</style>
+<!doctype html><html><head><meta charset="utf-8"><title>spz 隔离测试（渐进对照）</title>
+<style>body{margin:0;background:#000;color:#fff;font:13px monospace}#log{position:fixed;top:0;left:0;right:0;padding:10px;background:rgba(0,0,0,.75);white-space:pre-wrap;z-index:10;max-height:50%;overflow:auto}#canvas-wrap{position:fixed;inset:0}</style>
 <script type="importmap">
 { "imports": { "three": "./three.module.js" } }
 </script>
 </head><body>
 <div id="log">加载中…</div>
+<div id="canvas-wrap"></div>
 <script type="module">
 const log = document.getElementById('log')
 const t0 = performance.now()
@@ -12,16 +13,41 @@ const say = m => { log.textContent += m + '\n'; console.log('[spz-test]', m) }
 try {
   const mod = await import('./gaussian-splats-3d.js')
   say('库加载: ' + (performance.now()-t0).toFixed(0) + 'ms')
+
+  const params = new URLSearchParams(location.search)
+  const progressive = params.get('progressive') !== '0' // 默认开
+  const url = params.get('spz')
+  say('progressive: ' + (progressive ? 'ON' : 'OFF'))
+
   const viewer = new mod.Viewer({
-    selfDrivenMode: true, useBuiltInControls: true, rootElement: document.body,
+    selfDrivenMode: true, useBuiltInControls: true,
+    rootElement: document.getElementById('canvas-wrap'),
     optimizeSplatData: false, sphericalHarmonicsDegree: 0,
   })
   say('Viewer 创建 OK')
-  const url = new URLSearchParams(location.search).get('spz')
-  say('开始加载: ' + url.slice(0, 60) + '…')
+
   const t1 = performance.now()
-  await viewer.addSplatScene(url, { showLoadingUI: false, progressiveLoad: false })
-  say('✅ addSplatScene 完成: ' + ((performance.now()-t1)/1000).toFixed(1) + 's')
+  let firstFrameShown = false
+  say('开始加载: ' + url.slice(0, 70) + '…')
+
+  // 轮询 canvas 是否有实际渲染（非黑帧）作为"首帧"信号
+  const canvas = viewer.renderer.domElement
+  const frameWatch = setInterval(() => {
+    if (firstFrameShown) return
+    try {
+      const ctx = canvas.getContext('webgl2') || canvas.getContext('webgl')
+      // WebGL 拿不到像素，改用 splatRenderCount 判断（库内部渲染计数）
+      if (viewer.splatRenderCount > 0) {
+        firstFrameShown = true
+        say('✅ 首帧: ' + ((performance.now()-t1)/1000).toFixed(1) + 's (renderCount=' + viewer.splatRenderCount + ')')
+      }
+    } catch (e) {}
+  }, 500)
+
+  await viewer.addSplatScene(url, { progressiveLoad: progressive, showLoadingUI: false })
+  clearInterval(frameWatch)
+  if (!firstFrameShown) say('⏱ addSplatScene resolve: ' + ((performance.now()-t1)/1000).toFixed(1) + 's')
+  say('🎉 加载完成（渐进模式）')
 } catch (e) {
   say('❌ 错误: ' + (e && e.message || e))
 }
