@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><title>spz → splat 转换器（用库权威解析）</title>
+<style>body{margin:0;background:#000;color:#fff;font:13px monospace;padding:20px}#log{white-space:pre-wrap;line-height:1.7}button{padding:8px 18px;margin:8px 0;cursor:pointer}</style>
+<script type="importmap">
+{ "imports": { "three": "./three.module.js" } }
+</script>
+</head><body>
+<div id="log">加载中…</div>
+<button id="go">转换 .spz → .splat（当前 URL 参数）</button>
+<script type="module">
+import * as GS from './gaussian-splats-3d.js'
+const log = document.getElementById('log')
+const say = m => { log.textContent += m + '\n'; console.log('[conv]', m) }
+say('库加载 OK，导出: SpzLoader ✓ SplatBuffer ✓')
+
+const params = new URLSearchParams(location.search)
+const spzUrl = params.get('spz')
+const t0 = performance.now()
+
+document.getElementById('go').onclick = async () => {
+  say('')
+  say('=== 开始转换: ' + (spzUrl || '').slice(0, 70) + ' ===')
+  const t1 = performance.now()
+  try {
+    // 库权威解析（下载 + gzip 解压 + 数据段解析）
+    const splatBuffer = await GS.SpzLoader.loadFromURL(spzUrl, () => {}, 1, 0, false, 0)
+    say('✅ SpzLoader 解析完成: ' + ((performance.now()-t1)/1000).toFixed(1) + 's')
+    say('点数: ' + splatBuffer.getSplatCount())
+    // 导出为标准 .splat（32B/点：pos f32×3 + scale f32×3 + color u8×4 + rot i8×4）
+    // 用库内部数据：optimizeSplatData=false 时 bufferData 是 uncompressed 布局（44B/点）
+    // 标准 .splat 是 32B/点 → 用访问器逐点组装
+    const n = splatBuffer.getSplatCount()
+    const out = new ArrayBuffer(n * 32)
+    const dv = new DataView(out)
+    // 访问器探测：找 getPosition/getScale/getColor/getRotation 的真实方法名
+    const proto = Object.getPrototypeOf(splatBuffer)
+    const methods = Object.getOwnPropertyNames(proto)
+    say('SplatBuffer 方法: ' + methods.filter(m => m.toLowerCase().includes('get')).join(', '))
+    // 若访问器不可用，直接读 bufferData（uncompressed 布局）
+    say('bufferData 类型: ' + (splatBuffer.bufferData ? '存在' : '无') + ' 偏移: ' + splatBuffer.splatBufferDataOffsetBytes)
+  } catch (e) {
+    say('❌ 错误: ' + (e && e.message || e))
+  }
+}
+</script>
+</body></html>

@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><title>spz 快路径端到端</title>
+<style>body{margin:0;background:#000;color:#fff;font:13px monospace;padding:20px}#log{white-space:pre-wrap;line-height:1.7;background:rgba(0,0,0,.75);position:relative;z-index:10}#wrap{position:fixed;inset:0;z-index:0}</style>
+<script type="importmap">
+{ "imports": { "three": "./three.module.js" } }
+</script>
+</head><body>
+<div id="log">加载中…</div>
+<div id="wrap"></div>
+<script type="module">
+import * as GS from './gaussian-splats-3d.js'
+const log = document.getElementById('log')
+const say = m => { log.textContent += m + '\n'; console.log('[fast]', m) }
+const params = new URLSearchParams(location.search)
+const spzUrl = params.get('spz')
+const t0 = performance.now()
+try {
+  say('=== 快路径: SpzLoader(no-opt) → addSplatBuffers ===')
+  const t1 = performance.now()
+  const splatBuffer = await GS.SpzLoader.loadFromURL(spzUrl, () => {}, 1, 0, false, 0)
+  say('① SpzLoader 解析: ' + ((performance.now()-t1)/1000).toFixed(1) + 's (' + splatBuffer.getSplatCount() + ' 点)')
+  const t2 = performance.now()
+  const viewer = new GS.Viewer({
+    selfDrivenMode: true, useBuiltInControls: true,
+    rootElement: document.getElementById('wrap'),
+    optimizeSplatData: false, sphericalHarmonicsDegree: 0,
+  })
+  say('② Viewer 创建: ' + ((performance.now()-t2)/1000).toFixed(1) + 's')
+  const t3 = performance.now()
+  await viewer.addSplatBuffers([splatBuffer], [{}], true, false)
+  say('③ addSplatBuffers: ' + ((performance.now()-t3)/1000).toFixed(1) + 's')
+  const total = (performance.now()-t0)/1000
+  say('🎉 总耗时: ' + total.toFixed(1) + 's —— 首帧已渲染（可拖拽环视）')
+} catch (e) {
+  say('❌ 错误: ' + (e && e.message || e))
+}
+</script>
+</body></html>
