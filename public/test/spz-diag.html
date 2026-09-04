@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><title>spz 渲染诊断</title>
+<style>body{margin:0;background:#000;color:#fff;font:13px monospace;padding:16px}#log{white-space:pre-wrap;line-height:1.6;background:rgba(0,0,0,.7);position:relative;z-index:10;max-height:70vh;overflow:auto}#wrap{position:fixed;inset:0;z-index:0}</style>
+<script type="importmap">
+{ "imports": { "three": "./three.module.js" } }
+</script>
+</head><body>
+<div id="log">加载中…</div>
+<div id="wrap"></div>
+<script type="module">
+import * as GS from './gaussian-splats-3d.js'
+const log = document.getElementById('log')
+const say = m => { log.textContent += m + '\n'; console.log('[diag]', m) }
+const spzUrl = new URLSearchParams(location.search).get('spz')
+try {
+  say('=== 渲染诊断 ===')
+  const t1 = performance.now()
+  const splatBuffer = await GS.SpzLoader.loadFromURL(spzUrl, () => {}, 1, 0, false, 0)
+  say('① SpzLoader(no-opt): ' + ((performance.now()-t1)/1000).toFixed(1) + 's, points=' + splatBuffer.getSplatCount())
+  say('  buffer.compressionLevel: ' + splatBuffer.compressionLevel + ' | bytesPerSplat: ' + splatBuffer.bytesPerSplat)
+  say('  bufferData.byteLength: ' + (splatBuffer.bufferData ? splatBuffer.bufferData.byteLength : 'n/a'))
+
+  const viewer = new GS.Viewer({
+    selfDrivenMode: true, useBuiltInControls: true,
+    rootElement: document.getElementById('wrap'),
+    optimizeSplatData: false, sphericalHarmonicsDegree: 0, gpuAcceleratedSort: true,
+  })
+  say('② Viewer 创建 OK')
+  const t3 = performance.now()
+  // 关键诊断：addSplatBuffers 后轮询渲染计数
+  await viewer.addSplatBuffers([splatBuffer], [{}], true, false)
+  say('③ addSplatBuffers resolve: ' + ((performance.now()-t3)/1000).toFixed(1) + 's')
+  for (let i = 0; i < 10; i++) {
+    await new Promise(r => setTimeout(r, 2000))
+    say('  poll' + (i+1) + ': splatRenderCount=' + viewer.splatRenderCount + ' | splatMesh=' + (viewer.splatMesh ? '有' : '无') + ' | canvas=' + (viewer.renderer?.domElement ? '有' : '无'))
+    if (viewer.splatRenderCount > 0) { say('✅ 有渲染计数 → splat 已进入渲染管线'); break }
+  }
+} catch (e) {
+  say('❌ 错误: ' + (e && e.message || e))
+}
+</script>
+</body></html>

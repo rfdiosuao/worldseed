@@ -12,9 +12,9 @@
     "dev:proxy": "wrangler dev"
   },
   "dependencies": {
-    "@mkkellogg/gaussian-splats-3d": "0.4.7",
+    "@sparkjsdev/spark": "2.1.0",
     "qrcode-generator": "^1.4.4",
-    "three": "0.170.0"
+    "three": "0.180.0"
   },
   "devDependencies": {
     "vite": "^6.0.0",

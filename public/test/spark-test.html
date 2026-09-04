@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Spark 官方渲染器测试（自包含 chunk）</title>
+<style>body{margin:0;background:#000;color:#fff;font:13px monospace;padding:16px}#log{white-space:pre-wrap;line-height:1.6;background:rgba(0,0,0,.7);position:relative;z-index:10;max-height:60vh;overflow:auto}#wrap{position:fixed;inset:0;z-index:0}</style>
+<script type="importmap">
+{ "imports": { "three": "./three-0180.module.js" } }
+</script>
+</head><body>
+<div id="log">加载中…</div>
+<div id="wrap"></div>
+<script type="module">
+const log = document.getElementById('log')
+const say = m => { log.textContent += m + '\n'; console.log('[spark]', m) }
+const url = new URLSearchParams(location.search).get('spz')
+const t0 = performance.now()
+try {
+  say('=== Spark 渲染器（自包含 chunk）===')
+  const mod = await import('./spark-chunk.js')
+  say('① chunk 加载 OK: ' + ((performance.now()-t0)/1000).toFixed(1) + 's | 导出: ' + ['SplatLoader','SplatMesh','SparkControls','SparkRenderer'].filter(k => mod[k]).join(',') || '查')
+  const THREE = await import('three')
+  const { SparkRenderer, SplatMesh, SplatLoader, SparkControls } = mod
+  const scene = new THREE.Scene()
+  const camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.01, 1000)
+  scene.add(camera)
+  const canvas = document.getElementById('wrap').appendChild(document.createElement('canvas'))
+  const renderer = new THREE.WebGLRenderer({ canvas })
+  renderer.setSize(innerWidth, innerHeight)
+  const spark = new SparkRenderer({ renderer, view: { sort32: true } })
+  scene.add(spark)
+  say('② 场景+渲染器 OK')
+  const loader = new SplatLoader()
+  say('③ 加载 .spz: ' + url.slice(-45))
+  const packed = await loader.loadAsync(url, () => {})
+  say('④ SplatLoader OK: ' + ((performance.now()-t0)/1000).toFixed(1) + 's')
+  const world = new SplatMesh({ packedSplats: packed })
+  world.quaternion.set(1, 0, 0, 0)
+  scene.add(world)
+  say('⑤ SplatMesh 添加 OK')
+  const controls = new SparkControls({ canvas })
+  renderer.setAnimationLoop(() => { controls.update(camera); renderer.render(scene, camera) })
+  say('🎉 渲染循环启动 总耗时: ' + ((performance.now()-t0)/1000).toFixed(1) + 's')
+  setTimeout(() => say('⑥ 3s 后仍在运行 = 渲染稳定'), 3000)
+} catch (e) {
+  say('❌ 错误: ' + (e && e.message || e))
+}
+</script>
+</body></html>
