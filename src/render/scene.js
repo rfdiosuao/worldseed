@@ -30,6 +30,8 @@ export class WorldScene {
 
     this.starfield = this._makeStarfield(1300)
     this.scene.add(this.starfield)
+    this.panoMesh = null      // 360° 全景背景（真实世界影像）
+    this.panoTex = null
 
     this.glow = null
     this.worldGroup = null
@@ -225,6 +227,26 @@ export class WorldScene {
     if (this.starfield) hideHalf(this.starfield.geometry.attributes.position)
   }
 
+  // ---- 360° 全景背景：真实世界的影像层（失败静默保持星空） ----
+  setPano(url) {
+    if (!url || this.panoMesh) return
+    this.panoTex = new THREE.TextureLoader().load(url, () => {
+      try {
+        // 反向球体：相机在球心向外看即是全景
+        const geo = new THREE.SphereGeometry(500, 60, 40)
+        geo.scale(-1, 1, 1)
+        const mat = new THREE.MeshBasicMaterial({ map: this.panoTex })
+        this.panoMesh = new THREE.Mesh(geo, mat)
+        this.panoMesh.renderOrder = -10 // 背景层，最底
+        this.scene.add(this.panoMesh)
+        // 全景有了 → 星空/世界体让位，只留全景当背景
+        this.starfield.visible = false
+      } catch (e) { console.warn('[worldseed] pano 挂载失败：', e) }
+    }, undefined, err => {
+      console.warn('[worldseed] pano 加载失败，保持 2.5D 星空：', err && err.message)
+    })
+  }
+
   _disposeWorld() {
     if (this.worldGroup) {
       this.worldGroup.children.forEach(c => {
@@ -244,6 +266,8 @@ export class WorldScene {
     window.removeEventListener('pointermove', this._onPointer)
     window.removeEventListener('resize', this._onResize)
     this.controls.dispose()
+    if (this.panoMesh) { this.panoMesh.geometry.dispose(); this.panoMesh.material.dispose(); this.scene.remove(this.panoMesh) }
+    if (this.panoTex) this.panoTex.dispose()
     this._disposeWorld()
     this.starfield.geometry.dispose(); this.starfield.material.dispose()
     this.renderer.dispose()

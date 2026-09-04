@@ -145,6 +145,13 @@ function startGenerate(text) {
   const recipe = buildRecipe(text)
   currentRecipe = recipe
   const cached = getCached(recipe.seed)
+  // 调试/演示：?panourl= 显式指定全景 → 跳过生成，直接进世界页看全景背景
+  const panoParam = params.get('panourl')
+  if (panoParam && !recipe.panoUrl) {
+    recipe.panoUrl = panoParam
+    enterWorld(recipe, { instant: true })
+    return
+  }
   // 调试/演示：?spzurl= 显式指定 .spz 直链 → 跳过真生成，直接进世界渲染
   const spzParam = params.get('spzurl')
   if (spzParam && !recipe.spzUrl) {
@@ -156,6 +163,7 @@ function startGenerate(text) {
     // 命中 → 秒开直进世界（主路径）
     if (cached.url) recipe.worldMarbleUrl = cached.url
     if (cached.spzUrl) recipe.spzUrl = cached.spzUrl
+    if (cached.pano) recipe.panoUrl = cached.pano
     enterWorld(recipe, { instant: true })
   } else if (marbleConfigured() && params.get('demo') !== '1') {
     // 未命中 + Marble 已配置 → 真生成（进度跟随轮询，约 5 分钟）
@@ -177,6 +185,7 @@ function enterGrowing(recipe, { real = false } = {}) {
   showWorldCanvas(true)
   ensureScene()
   if (!scene) return goInput()
+  window.__wsScene = scene // 调试钩子：暴露 scene 供验证（正式无碍）
   scene.setWorld(recipe)
   const ov = mountOverlay(`
     <div class="stage" id="stage-grow">
@@ -234,11 +243,12 @@ function enterGrowing(recipe, { real = false } = {}) {
           },
         })
         if (genId !== myGen) return
-        // 完成：写入缓存（含 viewer URL + spz）→ 世界页
+        // 完成：写入缓存（含 viewer URL + spz + pano）→ 世界页
         recipe.worldMarbleUrl = result.worldMarbleUrl
         recipe.spzUrls = result.spzUrls
         recipe.spzUrl = (result.spzUrls && (result.spzUrls['500k'] || result.spzUrls.full_res)) || ''
-        setCached(recipe.seed, { at: Date.now(), url: result.worldMarbleUrl, spz: result.spzUrls, spzUrl: recipe.spzUrl })
+        recipe.panoUrl = result.panoUrl || ''
+        setCached(recipe.seed, { at: Date.now(), url: result.worldMarbleUrl, spz: result.spzUrls, spzUrl: recipe.spzUrl, pano: recipe.panoUrl })
         setProgress(1)
         stageEl.textContent = '世界，长出来了'
         setTimeout(() => { if (genId === myGen) enterWorld(recipe) }, 600)
@@ -271,7 +281,9 @@ function enterWorld(recipe, { instant = false } = {}) {
   showWorldCanvas(true)
   ensureScene()
   if (!scene) return goInput()
+  window.__wsScene = scene // 调试钩子：暴露 scene 供验证（正式无碍）
   scene.setWorld(recipe)
+  if (recipe.panoUrl) scene.setPano(recipe.panoUrl) // 真实世界全景背景（有则用）
   if (instant) scene.startGrowth(900) // 秒开也有一段极短生长仪式（不阻塞，~0.9s）
   tryEnableSplat(recipe) // 尝试 splat 真 3D；无资产/失败自动保持 2.5D（不阻塞流程）
   const ov = mountOverlay(`
