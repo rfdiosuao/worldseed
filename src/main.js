@@ -145,9 +145,17 @@ function startGenerate(text) {
   const recipe = buildRecipe(text)
   currentRecipe = recipe
   const cached = getCached(recipe.seed)
+  // 调试/演示：?spzurl= 显式指定 .spz 直链 → 跳过真生成，直接进世界渲染
+  const spzParam = params.get('spzurl')
+  if (spzParam && !recipe.spzUrl) {
+    recipe.spzUrl = spzParam
+    enterWorld(recipe, { instant: true })
+    return
+  }
   if (cached) {
     // 命中 → 秒开直进世界（主路径）
     if (cached.url) recipe.worldMarbleUrl = cached.url
+    if (cached.spzUrl) recipe.spzUrl = cached.spzUrl
     enterWorld(recipe, { instant: true })
   } else if (marbleConfigured() && params.get('demo') !== '1') {
     // 未命中 + Marble 已配置 → 真生成（进度跟随轮询，约 5 分钟）
@@ -226,10 +234,11 @@ function enterGrowing(recipe, { real = false } = {}) {
           },
         })
         if (genId !== myGen) return
-        // 完成：写入缓存（含 viewer URL）→ 世界页
+        // 完成：写入缓存（含 viewer URL + spz）→ 世界页
         recipe.worldMarbleUrl = result.worldMarbleUrl
         recipe.spzUrls = result.spzUrls
-        setCached(recipe.seed, { at: Date.now(), url: result.worldMarbleUrl, spz: result.spzUrls })
+        recipe.spzUrl = (result.spzUrls && (result.spzUrls['500k'] || result.spzUrls.full_res)) || ''
+        setCached(recipe.seed, { at: Date.now(), url: result.worldMarbleUrl, spz: result.spzUrls, spzUrl: recipe.spzUrl })
         setProgress(1)
         stageEl.textContent = '世界，长出来了'
         setTimeout(() => { if (genId === myGen) enterWorld(recipe) }, 600)
@@ -291,6 +300,9 @@ async function tryEnableSplat(recipe) {
   const params = new URLSearchParams(location.search)
   if (params.get('splat') === '1' && !recipe.ksplatUrl && !recipe.splatUrl && !recipe.spzUrl) {
     recipe.splatUrl = './worlds/test.splat' // 内容为 ksplat 布局（见 scripts/splat2ksplat.mjs），后缀 .splat 通过 loadFile 检查
+  }
+  if (params.get('spzurl') && !recipe.spzUrl) {
+    recipe.spzUrl = params.get('spzurl') // 测试注入：外部 .spz 直链（如 Marble CDN）
   }
   if (!recipe.ksplatUrl && !recipe.splatUrl && !recipe.spzUrl) return
   const wc = document.getElementById('wc')

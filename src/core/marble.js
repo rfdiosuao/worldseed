@@ -52,6 +52,7 @@ export async function pollOperation(operationId, { intervalMs = 6000, timeoutMs 
         worldId: r.id || r.world_id,
         worldMarbleUrl: r.world_marble_url || '',
         spzUrls: (r.assets && r.assets.splats && r.assets.splats.spz_urls) || {},
+        panoUrl: (r.assets && r.assets.imagery && r.assets.imagery.pano_url) || '',
         semantics: (r.assets && r.assets.splats && r.assets.splats.semantics_metadata) || null,
         cost: data.cost || null,
       }

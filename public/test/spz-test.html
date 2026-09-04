@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>spz 隔离测试</title>
+<style>body{margin:0;background:#000;color:#fff;font:14px monospace}#log{position:fixed;top:0;left:0;right:0;padding:8px;background:rgba(0,0,0,.7);white-space:pre-wrap;z-index:10}</style>
+<script type="importmap">
+{ "imports": { "three": "./three.module.js" } }
+</script>
+</head><body>
+<div id="log">加载中…</div>
+<script type="module">
+const log = document.getElementById('log')
+const t0 = performance.now()
+const say = m => { log.textContent += m + '\n'; console.log('[spz-test]', m) }
+try {
+  const mod = await import('./gaussian-splats-3d.js')
+  say('库加载: ' + (performance.now()-t0).toFixed(0) + 'ms')
+  const viewer = new mod.Viewer({
+    selfDrivenMode: true, useBuiltInControls: true, rootElement: document.body,
+    optimizeSplatData: false, sphericalHarmonicsDegree: 0,
+  })
+  say('Viewer 创建 OK')
+  const url = new URLSearchParams(location.search).get('spz')
+  say('开始加载: ' + url.slice(0, 60) + '…')
+  const t1 = performance.now()
+  await viewer.addSplatScene(url, { showLoadingUI: false, progressiveLoad: false })
+  say('✅ addSplatScene 完成: ' + ((performance.now()-t1)/1000).toFixed(1) + 's')
+} catch (e) {
+  say('❌ 错误: ' + (e && e.message || e))
+}
+</script>
+</body></html>
