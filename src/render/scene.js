@@ -12,6 +12,8 @@ export class WorldScene {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
     this.renderer.setSize(container.clientWidth, container.clientHeight)
+    // OrbitControls 触屏兼容：必须禁用浏览器默认手势，否则单指旋转被吞
+    this.renderer.domElement.style.touchAction = 'none'
     container.appendChild(this.renderer.domElement)
 
     this.scene = new THREE.Scene()
@@ -27,6 +29,8 @@ export class WorldScene {
     this.controls.autoRotateSpeed = 0.8
     this.controls.maxPolarAngle = Math.PI * 0.62
     this.controls.target.set(0, 0, 0)
+    // 用户开始拖拽/触屏旋转时，停掉自动旋转，避免"抢控制权"
+    this.controls.addEventListener('start', () => { this.controls.autoRotate = false })
 
     this.starfield = this._makeStarfield(1300)
     this.scene.add(this.starfield)

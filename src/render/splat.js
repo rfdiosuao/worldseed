@@ -51,6 +51,7 @@ export async function tryLoadSplat(recipe, container) {
       const camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 0.01, 1000)
       scene.add(camera)
       const canvas = document.createElement('canvas')
+      canvas.style.touchAction = 'none'   // SparkControls 触屏兼容
       container.appendChild(canvas)
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
       renderer.setSize(container.clientWidth, container.clientHeight)
