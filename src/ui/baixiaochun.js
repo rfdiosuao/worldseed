@@ -22,17 +22,66 @@ const LINES = {
 
 let root, img, bubble, panel, messages, input, currentAction = 'idle'
 let drag = null, roamTimer = null, roamBackTimer = null, chatBusy = false, suppressClick = false
+let ttsPlayer = null, recorder = null, audioCtx = null, pcmChunks = []
 const state = { xp: Number(localStorage.getItem('bxc_world_xp') || 0), turns: 0, lastWorld: null }
+const TTS_URL = import.meta.env.VITE_BXC_TTS_URL || ''
+const ASR_URL = import.meta.env.VITE_BXC_ASR_URL || ''
 
-function say(text, mood = 'tender', speak = true) {
+async function speakTTS(text) {
+  if (!TTS_URL) return false
+  try {
+    const res = await fetch(TTS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text.slice(0, 200) }) })
+    if (!res.ok) return false
+    const blob = await res.blob()
+    if (ttsPlayer) { ttsPlayer.pause(); ttsPlayer.src = '' }
+    ttsPlayer = new Audio(URL.createObjectURL(blob))
+    ttsPlayer.play().catch(() => {})
+    return true
+  } catch (_) { return false }
+}
+
+async function say(text, mood = 'tender', speak = true) {
   if (!bubble) return
   bubble.textContent = text
   bubble.dataset.mood = mood
-  if (speak && 'speechSynthesis' in window) {
+  if (!speak) return
+  if (await speakTTS(text)) return
+  if ('speechSynthesis' in window) {
     speechSynthesis.cancel()
     const u = new SpeechSynthesisUtterance(text.slice(0, 120)); u.lang = 'zh-CN'; u.rate = mood === 'panic' ? 1.12 : 1.05; u.pitch = mood === 'calm' ? 1.02 : 1.1
     speechSynthesis.speak(u)
   }
+}
+
+async function startRecord() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
+  const src = audioCtx.createMediaStreamSource(stream)
+  const proc = audioCtx.createScriptProcessor(4096, 1, 1)
+  const mute = audioCtx.createGain(); mute.gain.value = 0
+  pcmChunks = []
+  proc.onaudioprocess = e => {
+    const input = e.inputBuffer.getChannelData(0)
+    const buf = new Int16Array(input.length)
+    for (let i = 0; i < input.length; i++) { const s = Math.max(-1, Math.min(1, input[i])); buf[i] = s < 0 ? (s * 0x8000) | 0 : (s * 0x7fff) | 0 }
+    pcmChunks.push(buf)
+  }
+  src.connect(proc); proc.connect(mute); mute.connect(audioCtx.destination)
+  recorder = { stream, src, proc, mute }
+}
+async function stopRecord() {
+  if (!recorder) return null
+  const { stream, src, proc, mute } = recorder
+  try { proc.disconnect(); src.disconnect(); mute.disconnect() } catch (_) {}
+  stream.getTracks().forEach(t => t.stop())
+  if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null }
+  recorder = null
+  const total = pcmChunks.reduce((a, b) => a + b.length, 0)
+  if (!total) return null
+  const pcm = new Int16Array(total)
+  let o = 0
+  for (const c of pcmChunks) { pcm.set(c, o); o += c.length }
+  return pcm
 }
 function applyMood(heart) { const h = HEARTS.includes(heart) ? heart : 'tender'; const hue = HEART_HUE[h]; document.documentElement.style.setProperty('--bxc-mood-hue', hue); document.documentElement.style.setProperty('--bxc-breathe', h === 'fervent' ? '1.6s' : h === 'ethereal' ? '5s' : '3s'); document.documentElement.style.setProperty('--bxc-float', h === 'panic' ? '2px' : h === 'ethereal' ? '12px' : '8px'); if (bubble) bubble.style.setProperty('--bxc-mood-color', `hsl(${hue} 65% 72%)`) }
 function addXp(n = 1) { state.xp += n; localStorage.setItem('bxc_world_xp', String(state.xp)); renderRealm() }
@@ -89,11 +138,34 @@ export function initBaiXiaochun({ onGenerate } = {}) {
   window.__worldseedGenerate = onGenerate
   root = document.createElement('div'); root.id = 'bxcPet'; root.className = 'bxc-pet pet-idle'
   root.innerHTML = `<div class="bxc-bubble" id="bxcBubble">${LINES.welcome}</div><div class="bxc-card"><img id="bxcImg" src="${IMG('3d')}" alt="白小纯" draggable="false"><span class="bxc-realm">炼气</span><small class="bxc-xp">修为 0</small></div>`
-  panel = document.createElement('div'); panel.id = 'bxcPanel'; panel.innerHTML = `<div class="bxc-panel-head"><b>问白小纯</b><button class="bxc-close">×</button></div><div class="bxc-messages"></div><div class="bxc-suggest"><button>一念成界</button><button>这个世界怎么样？</button><button>我有点累了</button></div><div class="bxc-input"><input placeholder="说一句话，或输入‘一念成界：…’"><button>发送</button></div>`
+  panel = document.createElement('div'); panel.id = 'bxcPanel'; panel.innerHTML = `<div class="bxc-panel-head"><b>问白小纯</b><button class="bxc-close">×</button></div><div class="bxc-messages"></div><div class="bxc-suggest"><button>一念成界</button><button>这个世界怎么样？</button><button>我有点累了</button></div><div class="bxc-input"><button class="bxc-mic" title="语音输入" aria-label="语音输入"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg></button><input placeholder="说一句话，或输入‘一念成界：…’"><button>发送</button></div>`
   document.body.append(root, panel); img = root.querySelector('#bxcImg'); bubble = root.querySelector('#bxcBubble'); messages = panel.querySelector('.bxc-messages'); input = panel.querySelector('input'); renderRealm()
   root.addEventListener('mouseenter', () => { if (!drag) play('panic', LINES.panic[Math.floor(Math.random() * LINES.panic.length)]) }); root.addEventListener('mousedown', dragStart); root.addEventListener('touchstart', dragStart, { passive: false });
   window.addEventListener('mousemove', dragMove); window.addEventListener('touchmove', dragMove, { passive: false }); window.addEventListener('mouseup', dragEnd); window.addEventListener('touchend', dragEnd)
-  root.addEventListener('click', e => { if (!e.target.closest('button') && !drag && !suppressClick) openPanel() }); panel.querySelector('.bxc-close').onclick = closePanel; panel.querySelector('.bxc-input button').onclick = () => send(input.value); input.onkeydown = e => { if (e.key === 'Enter') send(input.value) }; panel.querySelectorAll('.bxc-suggest button').forEach(b => b.onclick = () => send(b.textContent)); document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel() });
+  root.addEventListener('click', e => { if (!e.target.closest('button') && !drag && !suppressClick) openPanel() }); panel.querySelector('.bxc-close').onclick = closePanel; panel.querySelector('.bxc-input button:last-child').onclick = () => send(input.value); input.onkeydown = e => { if (e.key === 'Enter') send(input.value) }; panel.querySelectorAll('.bxc-suggest button').forEach(b => b.onclick = () => send(b.textContent)); document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel() });
+  const micBtn = panel.querySelector('.bxc-mic'); let recording = false
+  micBtn.onclick = async () => {
+    if (recording) {
+      recording = false; micBtn.classList.remove('rec')
+      let pcm = null
+      try { pcm = await stopRecord() } catch (_) {}
+      if (!pcm || pcm.length < 3200) { say('道友刚才没声音呀，再说一次？', 'calm', false); return }
+      addMessage('me', '[语音]')
+      if (!ASR_URL) { say('语音识别未配置，先打字吧。', 'calm', false); return }
+      say('本座在听，正在领会……', 'think', false)
+      try {
+        const res = await fetch(ASR_URL, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: pcm.buffer })
+        const data = await res.json().catch(() => ({}))
+        if (data.text) send(data.text)
+        else say('没听清，道友再说一遍？', 'calm', false)
+      } catch (_) { say('语音识别出错了，道友稍后再试。', 'calm', false) }
+    } else {
+      try {
+        await startRecord(); recording = true; micBtn.classList.add('rec')
+        say('本座在听，道友请讲。', 'calm', false)
+      } catch (_) { say('拿不到麦克风权限……', 'calm', false) }
+    }
+  }
   const saved = JSON.parse(localStorage.getItem('bxc_world_pet_pos') || 'null'); if (saved?.left) { root.style.left = saved.left; root.style.top = saved.top }
   scheduleRoam(); applyMood('tender'); window.__bxc = { play, say, addXp, applyMood, setWorld: r => { state.lastWorld = r; applyMood(r.mood); play('think', `此界已成。${r.moodLabel || '灵气'}正在流转。`) }, worldContext }
 }

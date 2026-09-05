@@ -7,5 +7,11 @@
   "compatibility_date": "2025-01-01",
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "DOBAO_TTS_USER": "heang",
+    "DOBAO_TTS_SPEAKER": "zh_male_linjiananhai_moon_bigtts",
+    "DOBAO_TTS_RATE": -12,
+    "DOBAO_TTS_PITCH": 2
   }
 }
