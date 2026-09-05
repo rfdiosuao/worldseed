@@ -10,6 +10,8 @@ import { tryLoadSplat, disposeSplat } from './render/splat.js'
 import { mountCard, buildShareUrl } from './ui/card.js'
 import { createGrowParticles } from './ui/growParticles.js'
 import { generateWorld, pollOperation, marbleConfigured, MarbleApiError } from './core/marble.js'
+import { initBaiXiaochun } from './ui/baixiaochun.js'
+import { emit } from './core/events.js'
 
 const app = document.getElementById('app')
 const params = new URLSearchParams(location.search)
@@ -25,6 +27,7 @@ let genId = 0
 prefillLibrary()
 setupGlowOrbs()
 preloadHeroBg()
+initBaiXiaochun({ onGenerate: (text, opts) => startGenerate(text, opts) })
 boot()
 
 // 预加载 hero 高清背景：就绪后触发「模糊→清晰」动画，后续返回输入页直接清晰
@@ -102,6 +105,8 @@ function showWorldCanvas(show) {
 // ---------- ① 输入 ----------
 function goInput() {
   genId++
+  window.__bxc?.hide?.()
+  emit('world.input.entered')
   // 离开世界：清理 splat 接管并恢复 2.5D 画布可见（异常也不能阻断返回输入页）
   try {
     if (window.__splatHandle) {
@@ -156,9 +161,10 @@ function goInput() {
 
 // ---------- 生成入口：缓存命中秒开，否则生长 ----------
 const CURATED_TEXT = ['想你', '晚安', '对不起', '自由的风', '一个人的海']
-function startGenerate(text) {
-  const recipe = buildRecipe(text)
+function startGenerate(text, opts = {}) {
+  const recipe = opts.mood ? buildRecipe(text, { moodOverride: opts.mood }) : buildRecipe(text)
   currentRecipe = recipe
+  emit('world.intent', { text: recipe.text, seed: recipe.seed })
   const cached = getCached(recipe.seed)
   // 调试/演示：?panourl= 显式指定全景 → 跳过生成，直接进世界页看全景背景
   const panoParam = params.get('panourl')
@@ -218,6 +224,7 @@ const GROW_STAGES = [
   '一念成形', '山川凝聚', '光在编织', '星辰归位', '你的世界，正在醒来',
 ]
 function enterGrowing(recipe, { real = false } = {}) {
+  emit('world.growth.started', { seed: recipe.seed, text: recipe.text })
   genId++
   const myGen = genId
   showWorldCanvas(true)
@@ -314,6 +321,7 @@ function enterGrowing(recipe, { real = false } = {}) {
 
 // ---------- ③ 世界（漫游） ----------
 function enterWorld(recipe, { instant = false } = {}) {
+  emit('world.entered', { seed: recipe.seed, text: recipe.text, mood: recipe.mood })
   genId++
   const myGen = genId
   showWorldCanvas(true)
@@ -371,6 +379,7 @@ async function tryEnableSplat(recipe) {
 
 // ---------- ④ 封存 ----------
 function goSeal(recipe) {
+  emit('world.sealed', { seed: recipe.seed, text: recipe.text })
   genId++
   const ov = mountOverlay(`
     <div class="stage seal-stage" id="stage-seal">

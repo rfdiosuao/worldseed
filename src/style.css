@@ -474,3 +474,49 @@ body {
   .world-hud .hud-actions { width: 100%; }
   .world-hud .hud-actions .btn-ghost { flex: 1; text-align: center; }
 }
+
+/* 白小纯 IP 接入：固定定位、可拖拽角色 + 浮窗，对话面板 */
+#bxcPet{position:fixed;right:24px;bottom:18px;width:132px;height:185px;z-index:160;cursor:grab;user-select:none;touch-action:none;transition:filter .2s}
+#bxcPet.dragging{cursor:grabbing;transition:none}
+#bxcPet img{display:block;width:122px;height:150px;object-fit:contain;margin:20px auto 0;filter:drop-shadow(0 10px 8px #0008)}
+#bxcPet .bxc-bubble{position:absolute;right:0;bottom:168px;width:220px;min-height:34px;padding:8px 11px;background:rgba(255,252,242,.96);color:#3b3027;border:1px solid #d4b680;border-radius:13px 13px 3px 13px;font-size:12px;line-height:1.4;box-shadow:0 5px 20px #0003;opacity:.94;pointer-events:none}
+#bxcPet .bxc-card{position:relative;height:180px}
+#bxcPet .bxc-realm{position:absolute;right:2px;bottom:20px;background:#387c61;color:#fff;border-radius:999px;padding:4px 9px;font-size:11px;box-shadow:0 2px 8px #0004}
+#bxcPet .bxc-xp{position:absolute;right:3px;bottom:3px;color:#f7e6c1;font-size:10px;text-shadow:0 1px 3px #000}
+#bxcPet .bxc-pet.pet-idle img{animation:bxcFloat var(--bxc-breathe,4s) ease-in-out infinite}
+#bxcPet.pet-panic img{animation:bxcPanic .55s ease-in-out infinite}
+#bxcPet.pet-tickle img{animation:bxcTickle .8s ease-in-out infinite}
+#bxcPet.pet-nod img{animation:bxcNod .9s ease-in-out}
+#bxcPet.pet-jump img,#bxcPet.pet-cheer img{animation:bxcJump .7s ease-in-out}
+#bxcPet.pet-think img{animation:bxcThink 1.1s ease-in-out}
+#bxcPet.pet-sit img{animation:bxcSit 1.3s ease-in-out}
+#bxcPet.pet-dodge img{animation:bxcDodge .35s ease-in-out infinite}
+#bxcPet.pet-roam img{animation:bxcRoam .45s steps(2) infinite}
+#bxcPet.dragging img{animation:bxcFight .5s ease-in-out infinite}
+#bxcPet.dodge img{animation:bxcDodge .3s ease-in-out infinite}
+@keyframes bxcFloat{50%{transform:translateY(calc(var(--bxc-float,-8px) * -1))}}
+@keyframes bxcPanic{50%{transform:translateX(8px) rotate(5deg) scale(.96)}}
+@keyframes bxcTickle{50%{transform:rotate(8deg) translateY(-5px)}}
+@keyframes bxcNod{50%{transform:rotate(5deg) translateY(4px)}}
+@keyframes bxcJump{50%{transform:translateY(-22px) rotate(2deg)}}
+@keyframes bxcThink{50%{transform:rotate(-5deg) translateY(-3px)}}
+@keyframes bxcSit{50%{transform:translateY(8px) scale(.96)}}
+@keyframes bxcDodge{50%{transform:translateX(15px) rotate(-8deg)}}
+@keyframes bxcRoam{50%{transform:translateX(7px)}}
+@keyframes bxcFight{50%{transform:rotate(-4deg) translateX(4px)}}
+#bxcPanel{position:fixed;right:24px;bottom:210px;width:min(360px,calc(100vw - 32px));height:420px;z-index:170;background:rgba(20,18,30,.96);border:1px solid rgba(255,210,138,.36);border-radius:18px;box-shadow:0 18px 55px #0008;display:none;overflow:hidden;backdrop-filter:blur(16px)}
+#bxcPanel.open{display:flex;flex-direction:column}
+#bxcPanel .bxc-panel-head{display:flex;justify-content:space-between;padding:14px 16px;color:#ffd28a;border-bottom:1px solid var(--line,#3a2f4f)}
+#bxcPanel .bxc-close{border:0;background:none;color:#fff;font-size:22px;cursor:pointer}
+#bxcPanel .bxc-messages{flex:1;overflow:auto;padding:14px;font-size:13px;line-height:1.6}
+#bxcPanel .bxc-msg{margin:7px 0}
+#bxcPanel .bxc-msg.me{color:#a7c7ff}
+#bxcPanel .bxc-msg.bot{color:#ffe5b7}
+#bxcPanel .bxc-suggest{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px}
+#bxcPanel .bxc-suggest button{border:1px solid #61537c;background:#2c2742;color:#f3eaff;border-radius:999px;padding:6px 9px;font-size:11px;cursor:pointer}
+#bxcPanel .bxc-input{display:flex;gap:7px;padding:11px;border-top:1px solid var(--line,#3a2f4f)}
+#bxcPanel .bxc-input input{flex:1;min-width:0;background:#171522;border:1px solid #514663;color:#fff;border-radius:9px;padding:9px}
+#bxcPanel .bxc-input button{background:#4e876d;color:#fff;border:0;border-radius:9px;padding:0 13px;cursor:pointer}
+#bxcPet{filter:drop-shadow(0 0 10px hsl(var(--bxc-mood-hue,340) 65% 65% / .28))}
+#bxcPet .bxc-bubble{border-left:3px solid var(--bxc-mood-color,#f0a6c0)}
+@media(max-width:600px){#bxcPet{right:8px;bottom:8px;transform:scale(.82);transform-origin:bottom right}#bxcPet .bxc-bubble{right:4px;bottom:156px}#bxcPanel{right:8px;bottom:168px}}

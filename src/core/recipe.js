@@ -44,6 +44,8 @@ const MOOD_PALETTES = {
   melancholy:{ primary: '#8a7fa8', secondary: '#2a2640', glow: '#a89ad0', particle: '#8f84b8', label: '遗憾' },
   free:      { primary: '#38bdf8', secondary: '#123247', glow: '#7dd3fc', particle: '#4cc3f0', label: '自由' },
   calm:      { primary: '#5eead4', secondary: '#0f3a36', glow: '#99f6e4', particle: '#6ee7d8', label: '平静' },
+  solemn:    { primary: '#5a5f8a', secondary: '#23263f', glow: '#c9b37a', particle: '#8a93bd', label: '庄严' },
+  ethereal:  { primary: '#9fc0d6', secondary: '#2c3a45', glow: '#e9f3f8', particle: '#cfe0ea', label: '空灵' },
 }
 const DEFAULT_MOOD = 'tender'
 
@@ -60,7 +62,8 @@ export function buildRecipe(text, opts = {}) {
 
   // 情绪：词法命中优先，否则种子兜底
   let mood = DEFAULT_MOOD
-  for (const kw of Object.keys(MOOD_LEXICON)) {
+  if (opts.moodOverride && MOOD_PALETTES[opts.moodOverride]) mood = opts.moodOverride
+  else for (const kw of Object.keys(MOOD_LEXICON)) {
     if (src.includes(kw)) { mood = MOOD_LEXICON[kw]; break }
   }
   const palette = MOOD_PALETTES[mood]
